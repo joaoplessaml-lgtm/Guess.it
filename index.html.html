@@ -1,0 +1,1086 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Guess It! - Teclado Dividido</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    body {
+      background-color: #121213;
+      color: #ffffff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 100vh;
+      padding: 10px 0;
+    }
+
+    /* Tela Inicial */
+    #home-screen {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      max-width: 500px;
+      padding: 20px;
+      text-align: center;
+      margin: auto 0;
+    }
+
+    #home-screen h1 {
+      font-size: 3rem;
+      letter-spacing: 6px;
+      margin-bottom: 20px;
+      color: #ffffff;
+    }
+
+    .mode-buttons {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 25px;
+      width: 100%;
+    }
+
+    .btn-mode {
+      flex: 1;
+      padding: 12px;
+      background-color: #3a3a3c;
+      color: #fff;
+      border: 2px solid transparent;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .btn-mode.active {
+      background-color: #538d4e;
+      border-color: #ffffff;
+    }
+
+    .levels-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 10px;
+      width: 100%;
+      max-height: 320px;
+      overflow-y: auto;
+      padding: 10px;
+      background-color: rgba(255, 255, 255, 0.05);
+      border-radius: 10px;
+    }
+
+    .levels-grid::-webkit-scrollbar { width: 8px; }
+    .levels-grid::-webkit-scrollbar-thumb { background: #3a3a3c; border-radius: 4px; }
+
+    .btn-level {
+      background-color: #3a3a3c;
+      color: #fff;
+      border: 2px solid transparent;
+      border-radius: 8px;
+      padding: 12px 0;
+      font-size: 1.1rem;
+      font-weight: bold;
+      cursor: pointer;
+      position: relative;
+      transition: transform 0.1s ease;
+    }
+
+    .btn-level:hover { transform: scale(1.05); background-color: #565758; }
+
+    .btn-level.completed {
+      background-color: #538d4e;
+      color: #ffffff;
+      border-color: #ffffff;
+    }
+
+    .btn-level.completed::after {
+      content: "✓";
+      position: absolute;
+      top: 2px;
+      right: 4px;
+      font-size: 0.7rem;
+    }
+
+    /* Tela de Jogo */
+    #game-screen {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      min-height: 100vh;
+    }
+
+    header {
+      border-bottom: 1px solid #3a3a3c;
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 20px 10px 20px;
+    }
+
+    .btn-back {
+      background-color: #3a3a3c;
+      color: #ffffff;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+    
+    .btn-back:hover { background-color: #565758; }
+
+    h1 {
+      font-size: 2rem;
+      letter-spacing: 4px;
+      font-weight: 700;
+    }
+
+    #level-title {
+      font-size: 1rem;
+      font-weight: bold;
+      color: #b59f3b;
+    }
+
+    #boards-container {
+      display: flex;
+      gap: 15px;
+      justify-content: center;
+      align-items: flex-start;
+      margin: 10px 0;
+      flex-wrap: wrap;
+      max-width: 1000px;
+    }
+
+    .board { display: flex; flex-direction: column; gap: 5px; }
+    .row { display: flex; gap: 5px; }
+
+    .tile {
+      width: 48px;
+      height: 48px;
+      border: 2px solid #3a3a3c;
+      border-radius: 6px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 1.6rem;
+      font-weight: bold;
+      text-transform: uppercase;
+      background-color: transparent;
+      user-select: none;
+      transition: border-color 0.2s ease, transform 0.2s ease;
+    }
+
+    .mode-dupla .tile { width: 40px; height: 40px; font-size: 1.3rem; }
+    .mode-squad .tile { width: 34px; height: 34px; font-size: 1.1rem; }
+
+    /* Mais espaço entre os tabuleiros da DUPLA e do SQUAD */
+    #boards-container.mode-dupla {
+      column-gap: 55px;
+      row-gap: 30px;
+    }
+
+    #boards-container.mode-squad {
+      column-gap: 35px;
+      row-gap: 35px;
+    }
+
+    .tile.selected {
+      border-color: #565758;
+      transform: scale(1.05);
+    }
+
+    .tile[data-state="correct"] { background-color: #538d4e; border-color: #538d4e; color: white; }
+    .tile[data-state="present"] { background-color: #b59f3b; border-color: #b59f3b; color: white; }
+    .tile[data-state="absent"] { background-color: #3a3a3c; border-color: #3a3a3c; color: white; }
+
+    /* Teclado Dividido */
+    #keyboard {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      width: 100%;
+      max-width: 500px;
+      padding: 0 8px 10px 8px;
+    }
+
+    .keyboard-row { display: flex; justify-content: center; gap: 5px; width: 100%; }
+
+    .key {
+      position: relative;
+      background-color: #818384;
+      color: #ffffff;
+      border: 0;
+      border-radius: 4px;
+      height: 55px;
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 1.1rem;
+      font-weight: bold;
+      cursor: pointer;
+      text-transform: uppercase;
+      overflow: hidden;
+      user-select: none;
+    }
+
+    .key.large { flex: 1.5; font-size: 0.85rem; }
+
+    .key-bg-container {
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      display: grid;
+      z-index: 1;
+    }
+
+    .key-bg-1 { grid-template-columns: 1fr; }
+    .key-bg-2 { grid-template-columns: 1fr 1fr; }
+    .key-bg-4 { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
+
+    .key-part {
+      background-color: #818384;
+      transition: background-color 0.2s ease;
+    }
+
+    .key-part[data-state="correct"] { background-color: #538d4e; }
+    .key-part[data-state="present"] { background-color: #b59f3b; }
+    .key-part[data-state="absent"] { background-color: #3a3a3c; }
+
+    .key-label {
+      position: relative;
+      z-index: 2;
+      pointer-events: none;
+    }
+
+    #toast-msg {
+      position: fixed;
+      top: 10%;
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: #ffffff;
+      color: #000000;
+      padding: 10px 20px;
+      border-radius: 6px;
+      font-weight: bold;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+      display: none;
+      z-index: 2000;
+      text-align: center;
+    }
+
+    #overlay-container {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background-color: #1a1a1b;
+      color: #ffffff;
+      padding: 30px;
+      border-radius: 12px;
+      border: 1px solid #3a3a3c;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+      z-index: 1000;
+      text-align: center;
+      min-width: 280px;
+    }
+
+    #overlay-container p { font-size: 1.4rem; font-weight: bold; white-space: pre-line; }
+
+    .btn-next {
+      background-color: #538d4e;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 1.1rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .btn-next:hover { background-color: #43703e; }
+
+    /* Animações Modernas */
+    @keyframes pop {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+      100% { transform: scale(1); }
+    }
+    @keyframes flip {
+      0% { transform: rotateX(0deg); }
+      50% { transform: rotateX(90deg); }
+      100% { transform: rotateX(0deg); }
+    }
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20%, 60% { transform: translateX(-5px); }
+      40%, 80% { transform: translateX(5px); }
+    }
+    
+    .flip { animation: flip 0.5s ease-in-out; }
+    .shake { animation: shake 0.4s; }
+
+  </style>
+</head>
+<body>
+
+  <div id="home-screen">
+    <h1>GUESS IT!</h1>
+    <div class="mode-buttons">
+      <button class="btn-mode active" onclick="selectMode(1, this)">SOLO</button>
+      <button class="btn-mode" onclick="selectMode(2, this)">DUPLA</button>
+      <button class="btn-mode" onclick="selectMode(4, this)">SQUAD</button>
+    </div>
+    <h3 style="margin-bottom: 15px; font-weight: normal; color: #818384;">Escolha uma Fase (1 a 50):</h3>
+    <div class="levels-grid" id="levels-container"></div>
+  </div>
+
+  <div id="game-screen">
+    <header>
+      <button class="btn-back" onclick="goHome()">← Menu</button>
+      <h1 id="game-title">GUESS IT!</h1>
+      <span id="level-title">Fase 1</span>
+    </header>
+
+    <div id="boards-container"></div>
+    <div id="keyboard"></div>
+  </div>
+
+  <div id="toast-msg">Palavra não encontrada!</div>
+
+  <div id="overlay-container">
+    <p id="overlay-msg">Parabéns!</p>
+    <button id="next-level-btn" class="btn-next" onclick="goToNextLevel()">PRÓXIMA FASE</button>
+  </div>
+
+  <script>
+    function cleanWord(str) {
+      return str
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toUpperCase()
+        .trim();
+    }
+
+    // Palavras internas mantidas apenas como reserva caso o dicionário externo falhe.
+    const RAW_WORDS = [
+      "SAGAZ", "AMAGO", "NEGRO", "MEXER", "TERMO", "SENSO", "NOBRE", "ALGOZ", "AFETO", "PLENA",
+      "MUTUO", "AUDAZ", "PODER", "FAZER", "IDEIA", "CERNE", "MORAL", "ANEXO", "DESDE", "JUSTO",
+      "MUITO", "HONRA", "TORPE", "SOBRE", "ANELO", "ETICA", "SONHO", "AMIGO", "LAPIS", "TEMPO",
+      "CASAL", "BOATO", "AVIDO", "CORPO", "VILAO", "GENTE", "LUGAR", "MUNDO", "NUVEM", "VIVER",
+      "FORTE", "FELIZ", "LINDO", "FRACO", "TRIST", "LEGAL", "CLARO", "DOCES", "SABER", "LIVRO",
+      "VERDE", "FALAR", "CINZA", "NORTE", "SULCO", "LESTE", "OESTE", "CARRO", "MOTO", "FESTA",
+      "NOITE", "PRAIA", "VALOR", "GRACA", "VITAL", "FLORA", "FAUNA", "CALMA", "RURAL", "TEXTO",
+      "TENSO", "TECLA", "FOGO", "CAMPO", "CHUVA", "VENTO", "PORTA", "TERRA", "FORCA", "LUTA",
+      "VIDA", "RAZAO", "SANTO", "LUZES", "GATOS", "PEIXE", "VISAO", "GRUPO", "GRAVO", "PLANO",
+      "CERTO", "FORMA", "RISCO", "CARMA", "ARDER", "CRINA", "LERDO", "CULTO", "CERCA", "BOLAS",
+      "AEREO", "FAROL", "PASTA", "PRATO", "MESA", "LETRA", "VOCAL", "SINAL", "MARCA", "PONTO",
+      "CORRE", "AMAR", "PENSA", "CASAR", "COMER", "ANDAR", "LEVAR", "PEDIR", "JOGAR", "FUGIR",
+      "SUBIR", "SAIR", "ABRIR", "COLAR", "OUVIR", "OLHAR", "VERBA", "POUCO", "TUDO", "NADA",
+      "AGORA", "ONTEM", "NUNCA", "POSTO", "TRENO", "LINHA", "SEXTO", "NIVEL", "RADIO", "AUDIO",
+      "AREAS", "DADOS", "FATOR", "CUSTO", "MENTE", "TESTE", "GOLPE", "SABIO", "MAGIA", "POETA"
+    ];
+
+    /*
+      Dicionários usados:
+      1) Python Pro BR: lista PT-BR com mais de 320 mil palavras.
+      2) Lista PT-BR baseada no dicionário br.ispell/USP.
+
+      O jogo precisa de palavras com exatamente 5 letras.
+      Como o jogo remove acentos para comparar as letras, todas as palavras
+      também são normalizadas antes de entrar no banco.
+    */
+    const DICTIONARY_URLS = [
+      "https://raw.githubusercontent.com/pythonprobr/palavras/master/palavras.txt",
+      "https://raw.githubusercontent.com/tiagope/todas-palavras-PT-BR/master/br-sem-acentos.txt"
+    ];
+
+    const WORD_LENGTH = 5;
+    const TOTAL_LEVELS = 50;
+    const REQUIRED_WORDS = 50 + (50 * 2) + (50 * 4); // 350 palavras únicas
+
+    let MASTER_WORDS = [];
+    let dictionarySet = new Set();
+    let dictionaryReady = false;
+
+    // Embaralhamento Fisher-Yates.
+    function shuffleArray(array) {
+      const arr = [...array];
+
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+
+      return arr;
+    }
+
+    // Aceita somente palavras formadas por A-Z e com exatamente 5 letras.
+    function normalizeDictionaryWord(rawWord) {
+      const word = cleanWord(rawWord);
+
+      if (word.length !== WORD_LENGTH) return null;
+      if (!/^[A-Z]+$/.test(word)) return null;
+
+      return word;
+    }
+
+    async function fetchDictionary(url) {
+      const response = await fetch(url, {
+        method: "GET",
+        cache: "no-store"
+      });
+
+      if (!response.ok) {
+        throw new Error(`Falha HTTP ${response.status}`);
+      }
+
+      const text = await response.text();
+
+      return text
+        .split(/\r?\n/)
+        .map(normalizeDictionaryWord)
+        .filter(Boolean);
+    }
+
+    /*
+      Carrega os dois dicionários e junta tudo em um Set.
+      Assim:
+      - palavras repetidas entre as fontes são eliminadas;
+      - acentos não geram duplicatas;
+      - somente palavras de 5 letras entram no jogo.
+    */
+    async function loadFullDictionary() {
+      const uniqueWords = new Set();
+      let successfulSources = 0;
+
+      for (const url of DICTIONARY_URLS) {
+        try {
+          const words = await fetchDictionary(url);
+
+          words.forEach(word => uniqueWords.add(word));
+
+          successfulSources++;
+        } catch (error) {
+          console.warn("Falha ao carregar dicionário:", url, error);
+        }
+      }
+
+      // Reserva interna para o caso de os servidores externos estarem indisponíveis.
+      RAW_WORDS
+        .map(normalizeDictionaryWord)
+        .filter(Boolean)
+        .forEach(word => uniqueWords.add(word));
+
+      if (successfulSources === 0) {
+        console.warn("Nenhum dicionário externo pôde ser carregado. Usando apenas a lista interna.");
+      }
+
+      return shuffleArray([...uniqueWords]);
+    }
+
+    /*
+      Cria todas as fases de uma vez.
+
+      A ordem de consumo é:
+      - Solo: 50 palavras
+      - Dueto: 100 palavras
+      - Quarteto: 200 palavras
+
+      Portanto, uma palavra usada em uma fase nunca será usada em outra
+      fase, em nenhum dos três modos durante esta execução.
+    */
+    function buildLevels(words) {
+      const required = REQUIRED_WORDS;
+
+      if (words.length < required) {
+        throw new Error(
+          `O dicionário possui apenas ${words.length} palavras únicas de 5 letras, ` +
+          `mas são necessárias ${required} para manter todas as fases sem repetição.`
+        );
+      }
+
+      const shuffled = shuffleArray(words).slice(0, required);
+      const levels = { 1: [], 2: [], 4: [] };
+
+      let ptr = 0;
+
+      for (let i = 0; i < TOTAL_LEVELS; i++) {
+        levels[1].push([shuffled[ptr++]]);
+      }
+
+      for (let i = 0; i < TOTAL_LEVELS; i++) {
+        levels[2].push([
+          shuffled[ptr++],
+          shuffled[ptr++]
+        ]);
+      }
+
+      for (let i = 0; i < TOTAL_LEVELS; i++) {
+        levels[4].push([
+          shuffled[ptr++],
+          shuffled[ptr++],
+          shuffled[ptr++],
+          shuffled[ptr++]
+        ]);
+      }
+
+      return levels;
+    }
+
+    let LEVELS_DATA = { 1: [], 2: [], 4: [] };
+
+    let selectedMode = 1;
+    let currentLevel = 0;
+    let maxAttempts = 6;
+    let secretWords = [];
+    let boardStates = [];
+    let solvedBoards = [];
+    let currentAttempt = 0;
+    let selectedTileIndex = 0;
+    let isGameOver = false;
+    let isAnimating = false;
+
+    let keyBoardStates = [];
+    let completedLevels = JSON.parse(localStorage.getItem('guessIt_levels')) || { 1: [], 2: [], 4: [] };
+
+    const homeScreen = document.getElementById("home-screen");
+    const gameScreen = document.getElementById("game-screen");
+    const levelsContainer = document.getElementById("levels-container");
+    const boardsContainer = document.getElementById("boards-container");
+    const keyboardContainer = document.getElementById("keyboard");
+    const overlayContainer = document.getElementById("overlay-container");
+    const overlayMsg = document.getElementById("overlay-msg");
+    const nextBtn = document.getElementById("next-level-btn");
+    const toastMsg = document.getElementById("toast-msg");
+
+    function selectMode(mode, element) {
+      selectedMode = mode;
+
+      document.querySelectorAll(".btn-mode").forEach(btn => {
+        btn.classList.remove("active");
+      });
+
+      element.classList.add("active");
+      renderLevels();
+    }
+
+    function renderLevels() {
+      levelsContainer.innerHTML = "";
+
+      const completed = completedLevels[selectedMode] || [];
+
+      for (let i = 0; i < TOTAL_LEVELS; i++) {
+        const btn = document.createElement("button");
+        const isCompleted = completed.includes(i + 1);
+
+        btn.className = `btn-level ${isCompleted ? 'completed' : ''}`;
+        btn.innerText = i + 1;
+
+        btn.onclick = () => startLevel(i);
+
+        levelsContainer.appendChild(btn);
+      }
+    }
+
+    function startLevel(levelIndex) {
+      if (!dictionaryReady) {
+        showToast("Carregando dicionário...");
+        return;
+      }
+
+      if (!LEVELS_DATA[selectedMode] || !LEVELS_DATA[selectedMode][levelIndex]) {
+        showToast("As palavras ainda não foram carregadas.");
+        return;
+      }
+
+      currentLevel = levelIndex;
+      secretWords = LEVELS_DATA[selectedMode][levelIndex];
+
+      maxAttempts = selectedMode === 1 ? 6 : selectedMode === 2 ? 7 : 9;
+
+      document.getElementById("game-title").innerText =
+        selectedMode === 1 ? "GUESS IT!" :
+        selectedMode === 2 ? "DUPLA" :
+        "SQUAD";
+
+      document.getElementById("level-title").innerText = `Fase ${levelIndex + 1}`;
+
+      homeScreen.style.display = "none";
+      gameScreen.style.display = "flex";
+      overlayContainer.style.display = "none";
+
+      currentAttempt = 0;
+      selectedTileIndex = 0;
+      isGameOver = false;
+      isAnimating = false;
+
+      solvedBoards = Array(selectedMode).fill(false);
+      boardStates = Array(maxAttempts)
+        .fill("")
+        .map(() => Array(WORD_LENGTH).fill(""));
+
+      keyBoardStates = Array(selectedMode)
+        .fill(null)
+        .map(() => ({}));
+
+      boardsContainer.className =
+        selectedMode === 2 ? "mode-dupla" :
+        selectedMode === 4 ? "mode-squad" :
+        "";
+
+      renderBoards();
+      renderKeyboard();
+      updateSelectedTileHighlight();
+    }
+
+    function goToNextLevel() {
+      if (currentLevel < TOTAL_LEVELS - 1) {
+        startLevel(currentLevel + 1);
+      } else {
+        goHome();
+      }
+    }
+
+    function goHome() {
+      gameScreen.style.display = "none";
+      homeScreen.style.display = "flex";
+      overlayContainer.style.display = "none";
+      renderLevels();
+    }
+
+    function renderBoards() {
+      boardsContainer.innerHTML = "";
+
+      for (let b = 0; b < selectedMode; b++) {
+        const board = document.createElement("div");
+        board.className = "board";
+        board.id = `board-${b}`;
+
+        for (let r = 0; r < maxAttempts; r++) {
+          const row = document.createElement("div");
+          row.className = "row";
+          row.id = `b${b}-row-${r}`;
+
+          for (let c = 0; c < WORD_LENGTH; c++) {
+            const tile = document.createElement("div");
+            tile.className = "tile";
+            tile.id = `b${b}-tile-${r}-${c}`;
+
+            tile.addEventListener("click", () => {
+              if (
+                r === currentAttempt &&
+                !isGameOver &&
+                !isAnimating
+              ) {
+                selectedTileIndex = c;
+                updateSelectedTileHighlight();
+              }
+            });
+
+            row.appendChild(tile);
+          }
+
+          board.appendChild(row);
+        }
+
+        boardsContainer.appendChild(board);
+      }
+    }
+
+    function renderKeyboard() {
+      keyboardContainer.innerHTML = "";
+
+      const layout = [
+        ["Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P"],
+        ["A", "S", "D", "F", "G", "H", "J", "K", "L"],
+        ["ENTER", "Z", "X", "C", "V", "B", "N", "M", "BACKSPACE"]
+      ];
+
+      layout.forEach(rowKeys => {
+        const row = document.createElement("div");
+        row.className = "keyboard-row";
+
+        rowKeys.forEach(key => {
+          const btn = document.createElement("button");
+          btn.className = "key";
+          btn.id = `key-${key}`;
+
+          if (key === "ENTER" || key === "BACKSPACE") {
+            btn.classList.add("large");
+          }
+
+          const bgContainer = document.createElement("div");
+          bgContainer.className = `key-bg-container key-bg-${selectedMode}`;
+
+          if (key !== "ENTER" && key !== "BACKSPACE") {
+            for (let b = 0; b < selectedMode; b++) {
+              const part = document.createElement("div");
+              part.className = "key-part";
+              part.id = `key-part-${key}-${b}`;
+
+              bgContainer.appendChild(part);
+            }
+          }
+
+          const label = document.createElement("span");
+          label.className = "key-label";
+          label.innerText = key === "BACKSPACE" ? "⌫" : key;
+
+          btn.appendChild(bgContainer);
+          btn.appendChild(label);
+
+          btn.onclick = () => handleKeyPress(key);
+
+          row.appendChild(btn);
+        });
+
+        keyboardContainer.appendChild(row);
+      });
+    }
+
+    function updateSelectedTileHighlight() {
+      document.querySelectorAll(".tile.selected").forEach(tile => {
+        tile.classList.remove("selected");
+      });
+
+      if (isGameOver || isAnimating) return;
+
+      for (let b = 0; b < selectedMode; b++) {
+        if (!solvedBoards[b]) {
+          const tile = document.getElementById(
+            `b${b}-tile-${currentAttempt}-${selectedTileIndex}`
+          );
+
+          if (tile) {
+            tile.classList.add("selected");
+          }
+        }
+      }
+    }
+
+    function handleKeyPress(key) {
+      if (isGameOver || isAnimating) return;
+
+      if (key === "ENTER") {
+        checkRow();
+      } else if (key === "BACKSPACE" || key === "DELETE") {
+        removeLetter();
+      } else if (key === "ARROWLEFT") {
+        if (selectedTileIndex > 0) {
+          selectedTileIndex--;
+          updateSelectedTileHighlight();
+        }
+      } else if (key === "ARROWRIGHT") {
+        if (selectedTileIndex < WORD_LENGTH - 1) {
+          selectedTileIndex++;
+          updateSelectedTileHighlight();
+        }
+      } else if (/^[A-Z]$/.test(key.toUpperCase())) {
+        addLetter(key.toUpperCase());
+      }
+    }
+
+    function addLetter(letter) {
+      boardStates[currentAttempt][selectedTileIndex] = letter;
+
+      for (let b = 0; b < selectedMode; b++) {
+        if (!solvedBoards[b]) {
+          const tile = document.getElementById(
+            `b${b}-tile-${currentAttempt}-${selectedTileIndex}`
+          );
+
+          if (!tile) continue;
+
+          tile.innerText = letter;
+          tile.style.animation = "none";
+
+          void tile.offsetWidth;
+
+          tile.style.animation = "pop 0.1s ease-in-out";
+          tile.style.borderColor = "#565758";
+        }
+      }
+
+      if (selectedTileIndex < WORD_LENGTH - 1) {
+        selectedTileIndex++;
+      }
+
+      updateSelectedTileHighlight();
+    }
+
+    function removeLetter() {
+      if (boardStates[currentAttempt][selectedTileIndex] !== "") {
+        boardStates[currentAttempt][selectedTileIndex] = "";
+      } else if (selectedTileIndex > 0) {
+        selectedTileIndex--;
+        boardStates[currentAttempt][selectedTileIndex] = "";
+      }
+
+      for (let b = 0; b < selectedMode; b++) {
+        if (!solvedBoards[b]) {
+          const tile = document.getElementById(
+            `b${b}-tile-${currentAttempt}-${selectedTileIndex}`
+          );
+
+          if (!tile) continue;
+
+          tile.innerText = "";
+          tile.style.borderColor = "#3a3a3c";
+        }
+      }
+
+      updateSelectedTileHighlight();
+    }
+
+    function showToast(text) {
+      toastMsg.innerText = text;
+      toastMsg.style.display = "block";
+
+      setTimeout(() => {
+        toastMsg.style.display = "none";
+      }, 2000);
+    }
+
+    function shakeActiveRows() {
+      for (let b = 0; b < selectedMode; b++) {
+        if (!solvedBoards[b]) {
+          const row = document.getElementById(
+            `b${b}-row-${currentAttempt}`
+          );
+
+          if (!row) continue;
+
+          row.classList.remove("shake");
+          void row.offsetWidth;
+          row.classList.add("shake");
+        }
+      }
+    }
+
+    function checkRow() {
+      if (boardStates[currentAttempt].includes("")) {
+        showToast("Preencha todas as 5 letras!");
+        shakeActiveRows();
+        return;
+      }
+
+      const guess = cleanWord(boardStates[currentAttempt].join(""));
+
+      if (!dictionarySet.has(guess)) {
+        showToast("Palavra não encontrada!");
+        shakeActiveRows();
+        return;
+      }
+
+      isAnimating = true;
+
+      document.querySelectorAll(".tile.selected").forEach(tile => {
+        tile.classList.remove("selected");
+      });
+
+      const allStates = [];
+      const wasSolved = [...solvedBoards];
+
+      // Calcula os estados antes da animação.
+      for (let b = 0; b < selectedMode; b++) {
+        if (solvedBoards[b]) {
+          allStates.push(null);
+          continue;
+        }
+
+        const secret = secretWords[b].split("");
+        const states = Array(WORD_LENGTH).fill("absent");
+
+        // Primeiro: letras na posição correta.
+        for (let i = 0; i < WORD_LENGTH; i++) {
+          if (guess[i] === secret[i]) {
+            states[i] = "correct";
+            secret[i] = null;
+          }
+        }
+
+        // Depois: letras presentes em outra posição.
+        for (let i = 0; i < WORD_LENGTH; i++) {
+          if (
+            states[i] !== "correct" &&
+            secret.includes(guess[i])
+          ) {
+            states[i] = "present";
+            secret[secret.indexOf(guess[i])] = null;
+          }
+        }
+
+        allStates.push(states);
+
+        if (guess === secretWords[b]) {
+          solvedBoards[b] = true;
+        }
+      }
+
+      // Animação flip sequencial.
+      for (let i = 0; i < WORD_LENGTH; i++) {
+        setTimeout(() => {
+          for (let b = 0; b < selectedMode; b++) {
+            if (!wasSolved[b]) {
+              const tile = document.getElementById(
+                `b${b}-tile-${currentAttempt}-${i}`
+              );
+
+              if (!tile) continue;
+
+              tile.classList.add("flip");
+
+              // No meio do giro, aplica o estado.
+              setTimeout(() => {
+                tile.setAttribute(
+                  "data-state",
+                  allStates[b][i]
+                );
+
+                const letter = guess[i];
+                const currentPartState = keyBoardStates[b][letter];
+
+                if (allStates[b][i] === "correct") {
+                  keyBoardStates[b][letter] = "correct";
+                } else if (
+                  allStates[b][i] === "present" &&
+                  currentPartState !== "correct"
+                ) {
+                  keyBoardStates[b][letter] = "present";
+                } else if (
+                  allStates[b][i] === "absent" &&
+                  !currentPartState
+                ) {
+                  keyBoardStates[b][letter] = "absent";
+                }
+
+                const part = document.getElementById(
+                  `key-part-${letter}-${b}`
+                );
+
+                if (part) {
+                  part.setAttribute(
+                    "data-state",
+                    keyBoardStates[b][letter]
+                  );
+                }
+              }, 250);
+            }
+          }
+        }, i * 200);
+      }
+
+      // Finaliza a rodada depois das animações.
+      setTimeout(() => {
+        isAnimating = false;
+
+        if (solvedBoards.every(solved => solved)) {
+          isGameOver = true;
+          showOverlay("Você Venceu! 🎉", true);
+
+          const levelNum = currentLevel + 1;
+
+          if (!completedLevels[selectedMode].includes(levelNum)) {
+            completedLevels[selectedMode].push(levelNum);
+
+            localStorage.setItem(
+              "guessIt_levels",
+              JSON.stringify(completedLevels)
+            );
+          }
+        } else if (currentAttempt === maxAttempts - 1) {
+          isGameOver = true;
+
+          showOverlay(
+            `Fim de Jogo!\n\nPalavras:\n${secretWords.join(" | ")}`,
+            false
+          );
+        } else {
+          currentAttempt++;
+          selectedTileIndex = 0;
+          updateSelectedTileHighlight();
+        }
+      }, WORD_LENGTH * 200 + 300);
+    }
+
+    function showOverlay(msg, won) {
+      overlayMsg.innerText = msg;
+      overlayContainer.style.display = "flex";
+
+      nextBtn.innerText =
+        won && currentLevel < TOTAL_LEVELS - 1
+          ? "PRÓXIMA FASE"
+          : "VOLTAR AO MENU";
+    }
+
+    document.addEventListener("keydown", event => {
+      if (gameScreen.style.display !== "flex") return;
+
+      const key = event.key.toUpperCase();
+
+      if (
+        key === "ENTER" ||
+        key === "BACKSPACE" ||
+        key === "ARROWLEFT" ||
+        key === "ARROWRIGHT"
+      ) {
+        handleKeyPress(key);
+      } else if (key.length === 1 && key >= "A" && key <= "Z") {
+        handleKeyPress(key);
+      }
+    });
+
+    /*
+      Inicialização:
+      o menu aparece normalmente, mas as fases só recebem palavras depois
+      que o dicionário é carregado e embaralhado.
+    */
+    async function initializeGame() {
+      dictionaryReady = false;
+      renderLevels();
+
+      try {
+        MASTER_WORDS = await loadFullDictionary();
+
+        dictionarySet = new Set(MASTER_WORDS);
+
+        LEVELS_DATA = buildLevels(MASTER_WORDS);
+
+        dictionaryReady = true;
+
+        console.info(
+          `Dicionário carregado: ${MASTER_WORDS.length.toLocaleString("pt-BR")} palavras únicas de 5 letras.`
+        );
+      } catch (error) {
+        console.error("Erro ao preparar o dicionário:", error);
+
+        dictionaryReady = false;
+
+        showToast("Não foi possível carregar o dicionário.");
+      }
+    }
+
+    initializeGame();
+  </script>
+</body>
+</html>
